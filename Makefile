@@ -10,6 +10,8 @@ SZ = $(CROSS)size
 RM = rm -rf
 UPLOADER = arduino101load
 
+PORT ?= /dev/cu.usbmodemFA*
+
 SRCDIR = src
 OBJDIR = obj
 VPATH = $(SRCDIR) $(ARC_LIBRARY)
@@ -110,6 +112,6 @@ clean:
 	@$(RM) $(OBJDIR) $(TARGET) $(BINARY) $(TAGS)
 
 upload: $(BINARY)
-	@echo "Resetting the device for upload..."
-	-@picocom -b 1200 /dev/cu.usbmodemFA131 > /dev/null &
-	@$(UPLOADER) $(ARC_UPLOADER)/x86/bin $< /dev/cu.usbmodemFA131 verbose
+	@echo "Resetting the device $(PORT) for upload..."
+	-@picocom -b 1200 $(PORT) > /dev/null &
+	@$(UPLOADER) $(ARC_UPLOADER)/x86/bin $< $(PORT) verbose
