@@ -1,17 +1,45 @@
 #include <Arduino.h>
+#include <CurieBLE.h>
 
-const int blink_delay = 250;
+BLEPeripheral blePeripheral;
+BLEService ledService("A0E0");
+BLEUnsignedCharCharacteristic switchCharacteristic("FEFE", BLERead | BLEWrite);
+
+void init_bluetooth() {
+    // set advertised local name and service UUID:
+    // blePeripheral.setDeviceName("TestBLE");
+    blePeripheral.setLocalName("Led Switch");
+    blePeripheral.setAdvertisedServiceUuid(ledService.uuid());
+
+    // add service and characteristic:
+    blePeripheral.addAttribute(ledService);
+    blePeripheral.addAttribute(switchCharacteristic);
+
+    switchCharacteristic.setEventHandler(BLECharacteristicEvent::BLEWritten, [](BLECentral& central, BLECharacteristic& characteristic) {
+        if (switchCharacteristic.value()) {
+            Serial.println("LED on");
+            digitalWrite(LED_BUILTIN, HIGH);
+        } else {
+            Serial.println("LED off");
+            digitalWrite(LED_BUILTIN, LOW);
+        }
+    });
+
+    //set the initial value for the characeristic:
+    switchCharacteristic.setValue(0);
+
+    // begin advertising BLE service:
+    blePeripheral.begin();
+}
 
 void setup() {
     pinMode(13, OUTPUT);
-    Serial.begin(9600);
+    digitalWrite(LED_BUILTIN, HIGH);
+    init_bluetooth();
+    delay(200);
+    digitalWrite(LED_BUILTIN, LOW);
 }
 
 void loop() {
-    Serial.println("Toggle 1!");
-    digitalWrite(13, HIGH);
-    delay(blink_delay);
-    Serial.println("Toggle 0!");
-    digitalWrite(13, LOW);
-    delay(blink_delay);
+    delay(500);
 }

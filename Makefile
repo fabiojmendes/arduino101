@@ -10,27 +10,8 @@ SZ = $(CROSS)size
 RM = rm -rf
 UPLOADER = arduino101load
 
-PORT ?= /dev/cu.usbmodemFA*
-
-SRCDIR = src
-OBJDIR = obj
-VPATH = $(SRCDIR) $(ARC_LIBRARY)
-
-TAGS = .tags
-
-C_SRC = $(shell find $(SRCDIR) -name '*.c')
-CXX_SRC = $(shell find $(SRCDIR) -name '*.cpp')
-CORE_C_SRC = $(shell find $(ARC_LIBRARY)/cores -name '*.c')
-CORE_CXX_SRC += $(shell find $(ARC_LIBRARY)/cores -name '*.cpp')
-CORE_CXX_SRC += $(shell find $(ARC_LIBRARY)/variants -name '*.cpp')
-
-OBJS += $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(C_SRC))
-OBJS += $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(CXX_SRC))
-OBJS += $(patsubst $(ARC_LIBRARY)/%.c, $(OBJDIR)/%.o, $(CORE_C_SRC))
-OBJS += $(patsubst $(ARC_LIBRARY)/%.cpp, $(OBJDIR)/%.o, $(CORE_CXX_SRC))
-OUTDIRS = $(sort $(dir $(OBJS)))
-
-SIZE = $(OBJDIR)/.size
+TTY_PORT = /dev/cu.usbmodemF*
+USE_CURIE_BLE = true
 
 ARCH_FLAGS = -mcpu=quarkse_em -mlittle-endian
 
@@ -64,6 +45,33 @@ LDFLAGS += -Wl,--start-group
 
 LDLIBS = -larc32drv_arduino101 -lnsim -lc -lm -lgcc
 
+SRCDIR = src
+OBJDIR = obj
+VPATH = $(SRCDIR) $(ARC_LIBRARY)
+
+TAGS = .tags
+
+C_SRC = $(shell find $(SRCDIR) -name '*.c')
+CXX_SRC = $(shell find $(SRCDIR) -name '*.cpp')
+CORE_C_SRC = $(shell find $(ARC_LIBRARY)/cores -name '*.c')
+CORE_CXX_SRC += $(shell find $(ARC_LIBRARY)/cores -name '*.cpp')
+CORE_CXX_SRC += $(shell find $(ARC_LIBRARY)/variants -name '*.cpp')
+
+ifneq ($(USE_CURIE_BLE),false)
+	INCLUDES += -I$(ARC_LIBRARY)/libraries/CurieBLE/src
+	CORE_C_SRC += $(shell find $(ARC_LIBRARY)/libraries/CurieBLE/src -name '*.c')
+	CORE_CXX_SRC += $(shell find $(ARC_LIBRARY)/libraries/CurieBLE/src -name '*.cpp')
+endif
+
+OBJS += $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(C_SRC))
+OBJS += $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(CXX_SRC))
+OBJS += $(patsubst $(ARC_LIBRARY)/%.c, $(OBJDIR)/%.o, $(CORE_C_SRC))
+OBJS += $(patsubst $(ARC_LIBRARY)/%.cpp, $(OBJDIR)/%.o, $(CORE_CXX_SRC))
+
+OUTDIRS = $(sort $(dir $(OBJS)))
+
+SIZE = $(OBJDIR)/.size
+
 .PHONY = all
 
 all: $(TARGET) $(TAGS) $(SIZE) $(BINARY) $(TAGS)
@@ -91,11 +99,14 @@ $(SIZE): $(TARGET)
 
 $(TAGS): $(OBJS)
 	@echo "Generating $@"
-	@ctags -R --c-kinds=+xp --extra=+q --fields=+KSn --languages=c,c++ -f $@ \
+	@ctags -R --c-kinds=+xp --extra=+q --fields=+KSn -f $@ \
+		--exclude='*.c' --exclude='*.cpp' \
 		$(SRCDIR) \
 		$(ARC_LIBRARY)/cores \
 		$(ARC_LIBRARY)/variants \
-		$(ARC_LIBRARY)/system
+		$(ARC_LIBRARY)/system \
+		$(ARC_TOOLS)/arc-elf32/include \
+		$(ARC_LIBRARY)/libraries/CurieBLE/src
 
 # Rules
 $(OBJDIR)/%.o: %.c
@@ -112,6 +123,6 @@ clean:
 	@$(RM) $(OBJDIR) $(TARGET) $(BINARY) $(TAGS)
 
 upload: $(BINARY)
-	@echo "Resetting the device $(PORT) for upload..."
-	-@picocom -b 1200 $(PORT) > /dev/null &
-	@$(UPLOADER) $(ARC_UPLOADER)/x86/bin $< $(PORT) verbose
+	@echo "Resetting the device $(TTY_PORT) for upload..."
+	-@picocom -b 1200 $(TTY_PORT) > /dev/null &
+	@$(UPLOADER) $(ARC_UPLOADER)/x86/bin $< $(TTY_PORT) verbose
