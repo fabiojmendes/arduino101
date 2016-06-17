@@ -11,7 +11,8 @@ RM = rm -rf
 UPLOADER = arduino101load
 
 TTY_PORT = /dev/cu.usbmodemF*
-USE_CURIE_BLE = true
+
+LIBS = CurieBLE CurieIMU
 
 ARCH_FLAGS = -mcpu=quarkse_em -mlittle-endian
 
@@ -57,10 +58,12 @@ CORE_C_SRC = $(shell find $(ARC_LIBRARY)/cores -name '*.c')
 CORE_CXX_SRC += $(shell find $(ARC_LIBRARY)/cores -name '*.cpp')
 CORE_CXX_SRC += $(shell find $(ARC_LIBRARY)/variants -name '*.cpp')
 
-ifneq ($(USE_CURIE_BLE),false)
-	INCLUDES += -I$(ARC_LIBRARY)/libraries/CurieBLE/src
-	CORE_C_SRC += $(shell find $(ARC_LIBRARY)/libraries/CurieBLE/src -name '*.c')
-	CORE_CXX_SRC += $(shell find $(ARC_LIBRARY)/libraries/CurieBLE/src -name '*.cpp')
+ifneq ($(LIBS),)
+	FIND_C = $(shell find $(ARC_LIBRARY)/libraries/$(LIBNAME)/src -name '*.c')
+	FIND_CXX = $(shell find $(ARC_LIBRARY)/libraries/$(LIBNAME)/src -name '*.cpp')
+	INCLUDES += $(foreach LIBNAME,$(LIBS),-I$(ARC_LIBRARY)/libraries/$(LIBNAME)/src)
+	CORE_C_SRC += $(foreach LIBNAME,$(LIBS),$(FIND_C))
+	CORE_CXX_SRC += $(foreach LIBNAME,$(LIBS),$(FIND_CXX))
 endif
 
 OBJS += $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(C_SRC))
@@ -106,7 +109,7 @@ $(TAGS): $(OBJS)
 		$(ARC_LIBRARY)/variants \
 		$(ARC_LIBRARY)/system \
 		$(ARC_TOOLS)/arc-elf32/include \
-		$(ARC_LIBRARY)/libraries/CurieBLE/src
+		$(foreach LIBNAME,$(LIBS),$(ARC_LIBRARY)/libraries/$(LIBNAME)/src)
 
 # Rules
 $(OBJDIR)/%.o: %.c
