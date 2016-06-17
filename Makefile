@@ -75,7 +75,7 @@ OUTDIRS = $(sort $(dir $(OBJS)))
 
 SIZE = $(OBJDIR)/.size
 
-.PHONY = all
+.PHONY: all clean upload
 
 all: $(TARGET) $(TAGS) $(SIZE) $(BINARY) $(TAGS)
 
