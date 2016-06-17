@@ -49,9 +49,14 @@ void init_imu() {
 }
 
 void setup() {
+    // Setup pins
     pinMode(LED_BUILTIN, OUTPUT);
+
+    // Init System
     init_bluetooth();
     init_imu();
+
+    // Startup completed feedback
     digitalWrite(LED_BUILTIN, HIGH);
     delay(200);
     digitalWrite(LED_BUILTIN, LOW);
