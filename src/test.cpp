@@ -1,45 +1,65 @@
 #include <Arduino.h>
 #include <CurieBLE.h>
+#include <CurieIMU.h>
 
 BLEPeripheral blePeripheral;
-BLEService ledService("A0E0");
-BLEUnsignedCharCharacteristic switchCharacteristic("FEFE", BLERead | BLEWrite);
+BLEService fallService("0001");
+BLEUnsignedCharCharacteristic fallCharacteristic("0001", BLENotify | BLERead);
+
+volatile unsigned char falls = 0;
 
 void init_bluetooth() {
     // set advertised local name and service UUID:
-    // blePeripheral.setDeviceName("TestBLE");
-    blePeripheral.setLocalName("Led Switch");
-    blePeripheral.setAdvertisedServiceUuid(ledService.uuid());
+    blePeripheral.setDeviceName("OldBit");
+    blePeripheral.setLocalName("OldBit");
+    blePeripheral.setAdvertisedServiceUuid(fallService.uuid());
 
     // add service and characteristic:
-    blePeripheral.addAttribute(ledService);
-    blePeripheral.addAttribute(switchCharacteristic);
+    blePeripheral.addAttribute(fallService);
+    blePeripheral.addAttribute(fallCharacteristic);
 
-    switchCharacteristic.setEventHandler(BLECharacteristicEvent::BLEWritten, [](BLECentral& central, BLECharacteristic& characteristic) {
-        if (switchCharacteristic.value()) {
-            Serial.println("LED on");
-            digitalWrite(LED_BUILTIN, HIGH);
-        } else {
-            Serial.println("LED off");
-            digitalWrite(LED_BUILTIN, LOW);
-        }
+    blePeripheral.setEventHandler(BLEPeripheralEvent::BLEConnected, [](BLECentral& central) {
+        digitalWrite(LED_BUILTIN, HIGH);
+    });
+
+    blePeripheral.setEventHandler(BLEPeripheralEvent::BLEDisconnected, [](BLECentral& central) {
+        digitalWrite(LED_BUILTIN, LOW);
     });
 
     //set the initial value for the characeristic:
-    switchCharacteristic.setValue(0);
+    fallCharacteristic.setValue(0);
 
     // begin advertising BLE service:
     blePeripheral.begin();
 }
 
+void init_imu() {
+    /* Initialise the IMU */
+    CurieIMU.begin();
+    CurieIMU.attachInterrupt([] {
+        if (CurieIMU.getInterruptStatus(CURIE_IMU_SHOCK)) {
+            falls++;
+        }
+    });
+
+    /* Enable Shock Detection */
+    CurieIMU.setDetectionThreshold(CURIE_IMU_SHOCK, 4000); // 1.5g = 1500 mg
+    CurieIMU.setDetectionDuration(CURIE_IMU_SHOCK, 50);   // 50ms
+    CurieIMU.interrupts(CURIE_IMU_SHOCK);
+}
+
 void setup() {
-    pinMode(13, OUTPUT);
-    digitalWrite(LED_BUILTIN, HIGH);
+    pinMode(LED_BUILTIN, OUTPUT);
     init_bluetooth();
+    init_imu();
+    digitalWrite(LED_BUILTIN, HIGH);
     delay(200);
     digitalWrite(LED_BUILTIN, LOW);
 }
 
 void loop() {
-    delay(500);
+    delay(100);
+    if (falls != fallCharacteristic.value()) {
+        fallCharacteristic.setValue(falls);
+    }
 }
