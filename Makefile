@@ -16,6 +16,7 @@ LIBS = CurieBLE CurieIMU
 
 ARCH_FLAGS = -mcpu=quarkse_em -mlittle-endian
 
+INCLUDES += -I./$(LIBDIR)
 INCLUDES += -I$(ARC_LIBRARY)/system/libarc32_arduino101/common
 INCLUDES += -I$(ARC_LIBRARY)/system/libarc32_arduino101/drivers
 INCLUDES += -I$(ARC_LIBRARY)/system/libarc32_arduino101/bootcode
@@ -47,13 +48,16 @@ LDFLAGS += -Wl,--start-group
 LDLIBS = -larc32drv_arduino101 -lnsim -lc -lm -lgcc
 
 SRCDIR = src
+LIBDIR = lib
 OBJDIR = obj
-VPATH = $(SRCDIR) $(ARC_LIBRARY)
+VPATH = $(SRCDIR) $(LIBDIR) $(ARC_LIBRARY)
 
 TAGS = .tags
 
 C_SRC = $(shell find $(SRCDIR) -name '*.c')
 CXX_SRC = $(shell find $(SRCDIR) -name '*.cpp')
+LIB_C_SRC = $(shell find $(LIBDIR) -name '*.c' -not -path '*/examples/*')
+LIB_CXX_SRC = $(shell find $(LIBDIR) -name '*.cpp' -not -path '*/examples/*')
 CORE_C_SRC = $(shell find $(ARC_LIBRARY)/cores -name '*.c')
 CORE_CXX_SRC += $(shell find $(ARC_LIBRARY)/cores -name '*.cpp')
 CORE_CXX_SRC += $(shell find $(ARC_LIBRARY)/variants -name '*.cpp')
@@ -68,6 +72,8 @@ endif
 
 OBJS += $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(C_SRC))
 OBJS += $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(CXX_SRC))
+OBJS += $(patsubst $(LIBDIR)/%.c, $(OBJDIR)/%.o, $(LIB_C_SRC))
+OBJS += $(patsubst $(LIBDIR)/%.cpp, $(OBJDIR)/%.o, $(LIB_CXX_SRC))
 OBJS += $(patsubst $(ARC_LIBRARY)/%.c, $(OBJDIR)/%.o, $(CORE_C_SRC))
 OBJS += $(patsubst $(ARC_LIBRARY)/%.cpp, $(OBJDIR)/%.o, $(CORE_CXX_SRC))
 
@@ -105,6 +111,7 @@ $(TAGS): $(OBJS)
 	@ctags -R --c-kinds=+xp --extra=+q --fields=+KSn -f $@ \
 		--exclude='*.c' --exclude='*.cpp' \
 		$(SRCDIR) \
+		$(LIBDIR) \
 		$(ARC_LIBRARY)/cores \
 		$(ARC_LIBRARY)/variants \
 		$(ARC_LIBRARY)/system \
