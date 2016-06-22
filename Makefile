@@ -16,7 +16,7 @@ LIBS = CurieBLE CurieIMU
 
 ARCH_FLAGS = -mcpu=quarkse_em -mlittle-endian
 
-INCLUDES += -I./$(LIBDIR)
+INCLUDES += $(foreach lib,$(wildcard $(LIBDIR)/*),-I./$(lib))
 INCLUDES += -I$(ARC_LIBRARY)/system/libarc32_arduino101/common
 INCLUDES += -I$(ARC_LIBRARY)/system/libarc32_arduino101/drivers
 INCLUDES += -I$(ARC_LIBRARY)/system/libarc32_arduino101/bootcode
