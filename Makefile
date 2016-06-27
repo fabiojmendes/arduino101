@@ -12,7 +12,7 @@ UPLOADER = arduino101load
 
 TTY_PORT = /dev/cu.usbmodemF*
 
-LIBS = CurieBLE CurieIMU
+LIBS = CurieBLE CurieIMU CurieTimerOne Wire
 
 ARCH_FLAGS = -mcpu=quarkse_em -mlittle-endian
 
@@ -121,11 +121,11 @@ $(TAGS): $(OBJS)
 # Rules
 $(OBJDIR)/%.o: %.c
 	@echo "Compiling $(notdir $<)"
-	@$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR)/%.o: %.cpp
 	@echo "Compiling $(notdir $<)"
-	@$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Misc
 clean:

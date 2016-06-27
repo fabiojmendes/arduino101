@@ -2,16 +2,31 @@
 #include <CurieBLE.h>
 #include <CurieIMU.h>
 
+#include <OneWire.h>
+#include <DallasTemperature.h>
+
+#include <LiquidCrystal.h>
+
+#include "pulse.h"
+
 BLEPeripheral blePeripheral;
 BLEService fallService("0001");
 BLEUnsignedCharCharacteristic fallCharacteristic("0001", BLENotify | BLERead);
 
+#define ONE_WIRE_PORT 2
+
+OneWire oneWire(ONE_WIRE_PORT);
+DallasTemperature tempSensor(&oneWire);
+
+LiquidCrystal lcd(13, 12, 11, 10, 9, 8);
+
 volatile unsigned char falls = 0;
 
-void init_bluetooth() {
+void initBluetooth() {
     // set advertised local name and service UUID:
-    blePeripheral.setDeviceName("OldBit");
-    blePeripheral.setLocalName("OldBit");
+    const char* deviceName = "GeriFit";
+    blePeripheral.setDeviceName(deviceName);
+    blePeripheral.setLocalName(deviceName);
     blePeripheral.setAdvertisedServiceUuid(fallService.uuid());
 
     // add service and characteristic:
@@ -33,7 +48,7 @@ void init_bluetooth() {
     blePeripheral.begin();
 }
 
-void init_imu() {
+void initIMU() {
     /* Initialise the IMU */
     CurieIMU.begin();
     CurieIMU.attachInterrupt([] {
@@ -49,22 +64,35 @@ void init_imu() {
 }
 
 void setup() {
-    // Setup pins
-    pinMode(LED_BUILTIN, OUTPUT);
+    // Init Systems
+    initBluetooth();
+    initIMU();
 
-    // Init System
-    init_bluetooth();
-    init_imu();
+    // Temperature Sensor
+    tempSensor.begin();
 
-    // Startup completed feedback
-    digitalWrite(LED_BUILTIN, HIGH);
-    delay(200);
-    digitalWrite(LED_BUILTIN, LOW);
+    pulse_init();
+
+    // set up the LCD's number of columns and rows:
+    lcd.begin(16, 2);
+    // Print a message to the LCD.
+    lcd.print("GeriFit!");
 }
 
 void loop() {
-    delay(100);
     if (falls != fallCharacteristic.value()) {
         fallCharacteristic.setValue(falls);
     }
+
+    tempSensor.requestTemperatures();
+
+    // set the cursor to column 0, line 1
+    // (note: line 1 is the second row, since counting begins with 0):
+    lcd.setCursor(0, 1);
+    // print the number of seconds since reset:
+    lcd.print("BPM: ");
+    lcd.print(pulse_bpm());
+    lcd.print(" (");
+    lcd.print(tempSensor.getTempCByIndex(0));
+    lcd.print(")     ");
 }
